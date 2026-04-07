@@ -1,0 +1,45 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KakaoCli.Win", "src/KakaoCli.Win/KakaoCli.Win.csproj", "{A9B7AF4D-4D5F-4E2C-8A7B-E2A46AA21551}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KakaoCli.Win.Core", "src/KakaoCli.Win.Core/KakaoCli.Win.Core.csproj", "{4A119047-7C7C-4BFA-BF97-69063E7442E4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KakaoCli.Win.Data", "src/KakaoCli.Win.Data/KakaoCli.Win.Data.csproj", "{5E94781D-AEA8-4AAB-8D86-9A372A9187D4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KakaoCli.Win.Automation", "src/KakaoCli.Win.Automation/KakaoCli.Win.Automation.csproj", "{8CE715A5-9C5F-4667-9A08-E2B2CB50D99A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KakaoCli.Win.Probe", "src/KakaoCli.Win.Probe/KakaoCli.Win.Probe.csproj", "{B6E2C8B4-9385-4C31-9A12-4B046B18C538}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{A9B7AF4D-4D5F-4E2C-8A7B-E2A46AA21551}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A9B7AF4D-4D5F-4E2C-8A7B-E2A46AA21551}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A9B7AF4D-4D5F-4E2C-8A7B-E2A46AA21551}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A9B7AF4D-4D5F-4E2C-8A7B-E2A46AA21551}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4A119047-7C7C-4BFA-BF97-69063E7442E4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4A119047-7C7C-4BFA-BF97-69063E7442E4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4A119047-7C7C-4BFA-BF97-69063E7442E4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4A119047-7C7C-4BFA-BF97-69063E7442E4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5E94781D-AEA8-4AAB-8D86-9A372A9187D4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5E94781D-AEA8-4AAB-8D86-9A372A9187D4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5E94781D-AEA8-4AAB-8D86-9A372A9187D4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5E94781D-AEA8-4AAB-8D86-9A372A9187D4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8CE715A5-9C5F-4667-9A08-E2B2CB50D99A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8CE715A5-9C5F-4667-9A08-E2B2CB50D99A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8CE715A5-9C5F-4667-9A08-E2B2CB50D99A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8CE715A5-9C5F-4667-9A08-E2B2CB50D99A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B6E2C8B4-9385-4C31-9A12-4B046B18C538}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B6E2C8B4-9385-4C31-9A12-4B046B18C538}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B6E2C8B4-9385-4C31-9A12-4B046B18C538}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B6E2C8B4-9385-4C31-9A12-4B046B18C538}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

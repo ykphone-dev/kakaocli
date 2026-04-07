@@ -1,0 +1,22 @@
+[
+  {
+    "id": 9001,
+    "chat_id": 12345,
+    "sender_id": 42,
+    "type": "text",
+    "timestamp": "2026-04-07T05:00:00Z",
+    "is_from_me": false,
+    "sender": "Mom",
+    "text": "Did you eat?"
+  },
+  {
+    "id": 9002,
+    "chat_id": 12345,
+    "sender_id": 99,
+    "type": "text",
+    "timestamp": "2026-04-07T05:01:00Z",
+    "is_from_me": true,
+    "sender": "Me",
+    "text": "Yes!"
+  }
+]

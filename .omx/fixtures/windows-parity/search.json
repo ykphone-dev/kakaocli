@@ -1,0 +1,12 @@
+[
+  {
+    "id": 9100,
+    "chat_id": 67890,
+    "sender_id": 88,
+    "type": "text",
+    "timestamp": "2026-04-06T23:15:00Z",
+    "is_from_me": false,
+    "sender": "Kim",
+    "text": "Please check lunch options"
+  }
+]

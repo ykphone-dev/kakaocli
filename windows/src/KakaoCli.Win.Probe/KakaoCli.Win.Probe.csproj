@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <UseAppHost>false</UseAppHost>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\KakaoCli.Win.Core\KakaoCli.Win.Core.csproj" />
+    <ProjectReference Include="..\KakaoCli.Win.Data\KakaoCli.Win.Data.csproj" />
+    <ProjectReference Include="..\KakaoCli.Win.Automation\KakaoCli.Win.Automation.csproj" />
+  </ItemGroup>
+</Project>

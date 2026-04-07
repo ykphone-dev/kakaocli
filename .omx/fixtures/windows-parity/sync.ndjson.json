@@ -1,0 +1,14 @@
+[
+  {
+    "type": "message",
+    "log_id": 7001,
+    "chat_id": 67890,
+    "chat_name": "Project Room",
+    "sender_id": 88,
+    "sender": "Kim",
+    "text": "Need a status update",
+    "message_type": 1,
+    "timestamp": "2026-04-07T05:09:59Z",
+    "is_from_me": false
+  }
+]

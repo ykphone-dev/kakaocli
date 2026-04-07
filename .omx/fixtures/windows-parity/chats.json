@@ -1,0 +1,18 @@
+[
+  {
+    "id": 12345,
+    "type": "direct",
+    "display_name": "Mom",
+    "member_count": 2,
+    "unread_count": 0,
+    "last_message_at": "2026-04-07T05:00:00Z"
+  },
+  {
+    "id": 67890,
+    "type": "group",
+    "display_name": "Project Room",
+    "member_count": 5,
+    "unread_count": 3,
+    "last_message_at": "2026-04-07T04:50:00Z"
+  }
+]
