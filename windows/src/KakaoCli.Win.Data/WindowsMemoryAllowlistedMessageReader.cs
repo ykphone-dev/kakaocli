@@ -73,7 +73,8 @@ public sealed class WindowsMemoryAllowlistedMessageReader : IAllowlistedMessageR
                     item.IsFromMe ? "Me" : item.Sender,
                     item.Text,
                     ParseTimestamp(item.Timestamp),
-                    DateTimeOffset.UtcNow
+                    DateTimeOffset.UtcNow,
+                    item.ImageUrls
                 ));
             }
         }

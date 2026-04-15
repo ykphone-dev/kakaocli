@@ -184,13 +184,16 @@ static async Task TestSlackSinkSafety()
         "sender>",
         "hello <@channel> & text",
         DateTimeOffset.UtcNow.ToString("O"),
-        DateTimeOffset.UtcNow.ToString("O")
+        DateTimeOffset.UtcNow.ToString("O"),
+        ["https://talk.kakaocdn.net/test-image.png"]
     ));
 
     Environment.SetEnvironmentVariable(envName, null);
     Assert(sent, "Slack sink should report success for 2xx response.");
     Assert(!handler.Body.Contains("hello <@channel>", StringComparison.Ordinal), "Slack text should not contain raw mention syntax.");
     Assert(!handler.Body.Contains("policy<&room>", StringComparison.Ordinal), "Slack text should not contain raw angle brackets.");
+    Assert(handler.Body.Contains("\"type\":\"image\"", StringComparison.Ordinal), "Slack image block should be emitted.");
+    Assert(handler.Body.Contains("https://talk.kakaocdn.net/test-image.png", StringComparison.Ordinal), "Slack payload should include image URL.");
 }
 
 static Task TestProgramBoundary()

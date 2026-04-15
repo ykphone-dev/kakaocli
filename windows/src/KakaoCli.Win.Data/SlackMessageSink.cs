@@ -50,19 +50,26 @@ public sealed class SlackMessageSink : IMessageSink
         var text = $"[{EscapeSlackText(payload.ChatLabel)}] " +
                    $"{EscapeSlackText(payload.Sender ?? "Unknown")}: " +
                    $"{EscapeSlackText(payload.TextPreview)}";
+        var body = new Dictionary<string, object?>
+        {
+            ["text"] = text,
+            ["metadata"] = new
+            {
+                chat_id = payload.ChatId,
+                log_id = payload.LogId,
+                timestamp = payload.Timestamp,
+                observed_at = payload.ObservedAt,
+            },
+        };
+        var blocks = BuildBlocks(text, payload.ImageUrls);
+        if (blocks.Count > 0)
+        {
+            body["blocks"] = blocks;
+        }
+
         var response = await _client.PostAsJsonAsync(
             _webhookUri,
-            new
-            {
-                text,
-                metadata = new
-                {
-                    chat_id = payload.ChatId,
-                    log_id = payload.LogId,
-                    timestamp = payload.Timestamp,
-                    observed_at = payload.ObservedAt,
-                },
-            },
+            body,
             cancellationToken
         );
 
@@ -75,6 +82,49 @@ public sealed class SlackMessageSink : IMessageSink
             $"Slack delivery failed: HTTP {(int)response.StatusCode} for chat_id={payload.ChatId}, log_id={payload.LogId}"
         );
         return false;
+    }
+
+    private static IReadOnlyList<Dictionary<string, object?>> BuildBlocks(
+        string text,
+        IReadOnlyList<string>? imageUrls
+    )
+    {
+        var urls = imageUrls?
+            .Where(url => Uri.TryCreate(url, UriKind.Absolute, out var uri)
+                          && uri.Scheme == Uri.UriSchemeHttps)
+            .Distinct(StringComparer.Ordinal)
+            .Take(4)
+            .ToList() ?? [];
+
+        if (urls.Count == 0)
+        {
+            return [];
+        }
+
+        var blocks = new List<Dictionary<string, object?>>
+        {
+            new()
+            {
+                ["type"] = "section",
+                ["text"] = new Dictionary<string, string>
+                {
+                    ["type"] = "mrkdwn",
+                    ["text"] = text,
+                },
+            },
+        };
+
+        for (var i = 0; i < urls.Count; i++)
+        {
+            blocks.Add(new Dictionary<string, object?>
+            {
+                ["type"] = "image",
+                ["image_url"] = urls[i],
+                ["alt_text"] = $"Kakao image {i + 1}",
+            });
+        }
+
+        return blocks;
     }
 
     private static string EscapeSlackText(string value)

@@ -120,7 +120,8 @@ dotnet run --project src/KakaoCli.Win -- win-memory-read-chat --chat-id 12345678
 dotnet run --project src/KakaoCli.Win -- win-memory-read-chat --chat-id 123456789 --follow
 
 # Forward only new memory-observed messages from one chat to Slack. First run
-# seeds the cursor, so old messages are not sent.
+# seeds the cursor, so old messages are not sent. Image messages with Kakao CDN
+# URLs in memory are forwarded as Slack image blocks.
 dotnet run --project src/KakaoCli.Win -- win-memory-slack-monitor --chat-id 123456789 --label "Kakao self chat"
 ```
 

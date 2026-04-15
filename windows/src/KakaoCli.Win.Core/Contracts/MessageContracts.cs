@@ -10,7 +10,8 @@ public sealed record AllowlistedMessage(
     string? Sender,
     string? Text,
     DateTimeOffset Timestamp,
-    DateTimeOffset ObservedAt
+    DateTimeOffset ObservedAt,
+    IReadOnlyList<string>? ImageUrls = null
 );
 
 public sealed record MonitorPayload(
@@ -21,7 +22,8 @@ public sealed record MonitorPayload(
     [property: JsonPropertyName("sender")] string? Sender,
     [property: JsonPropertyName("text_preview")] string TextPreview,
     [property: JsonPropertyName("timestamp")] string Timestamp,
-    [property: JsonPropertyName("observed_at")] string ObservedAt
+    [property: JsonPropertyName("observed_at")] string ObservedAt,
+    [property: JsonPropertyName("image_urls")] IReadOnlyList<string>? ImageUrls = null
 );
 
 public interface IMessageSink

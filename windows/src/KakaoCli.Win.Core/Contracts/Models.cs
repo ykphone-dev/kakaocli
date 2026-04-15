@@ -32,7 +32,8 @@ public sealed record SyncEvent(
     [property: JsonPropertyName("text")] string? Text,
     [property: JsonPropertyName("message_type")] int MessageType,
     [property: JsonPropertyName("timestamp")] string Timestamp,
-    [property: JsonPropertyName("is_from_me")] bool IsFromMe
+    [property: JsonPropertyName("is_from_me")] bool IsFromMe,
+    [property: JsonPropertyName("image_urls")] IReadOnlyList<string>? ImageUrls = null
 );
 
 public sealed record ContractRule(

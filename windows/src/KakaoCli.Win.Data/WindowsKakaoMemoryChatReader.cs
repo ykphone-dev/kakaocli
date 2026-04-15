@@ -11,6 +11,10 @@ public sealed class WindowsKakaoMemoryChatReader
         "\"message\"\\s*:\\s*\"((?:\\\\.|[^\"\\\\])*)\"",
         RegexOptions.Compiled
     );
+    private static readonly Regex AttachmentRegex = new(
+        "\"attachment\"\\s*:\\s*\"((?:\\\\.|[^\"\\\\])*)\"",
+        RegexOptions.Compiled
+    );
 
     private readonly long _chatId;
     private readonly int _scanHitLimit;
@@ -78,6 +82,7 @@ public sealed class WindowsKakaoMemoryChatReader
         var timestamp = TryReadLongProperty(context, "sendAt", out var sendAt)
             ? NormalizeEpoch(sendAt)
             : DateTimeOffset.UtcNow.ToString("O");
+        var imageUrls = ExtractImageUrls(context);
 
         item = new SyncEvent(
             "message",
@@ -89,9 +94,81 @@ public sealed class WindowsKakaoMemoryChatReader
             text,
             messageType,
             timestamp,
-            _selfUserIds.Contains(senderId)
+            _selfUserIds.Contains(senderId),
+            imageUrls
         );
         return true;
+    }
+
+    private static IReadOnlyList<string> ExtractImageUrls(string context)
+    {
+        var attachmentMatch = AttachmentRegex.Match(context);
+        if (!attachmentMatch.Success)
+        {
+            return [];
+        }
+
+        var attachmentJson = DecodeJsonString(attachmentMatch.Groups[1].Value);
+        if (string.IsNullOrWhiteSpace(attachmentJson))
+        {
+            return [];
+        }
+
+        try
+        {
+            using var document = JsonDocument.Parse(attachmentJson);
+            if (document.RootElement.ValueKind != JsonValueKind.Object)
+            {
+                return [];
+            }
+
+            var urls = new List<string>();
+            AddStringArray(document.RootElement, "imageUrls", urls);
+            AddStringArray(document.RootElement, "thumbnailUrls", urls);
+            AddStringProperty(document.RootElement, "imageUrl", urls);
+            AddStringProperty(document.RootElement, "url", urls);
+            return urls
+                .Where(IsUsableImageUrl)
+                .Distinct(StringComparer.Ordinal)
+                .Take(8)
+                .ToList();
+        }
+        catch (JsonException)
+        {
+            return [];
+        }
+    }
+
+    private static void AddStringArray(JsonElement root, string propertyName, List<string> urls)
+    {
+        if (!root.TryGetProperty(propertyName, out var property) || property.ValueKind != JsonValueKind.Array)
+        {
+            return;
+        }
+
+        foreach (var item in property.EnumerateArray())
+        {
+            if (item.ValueKind == JsonValueKind.String && !string.IsNullOrWhiteSpace(item.GetString()))
+            {
+                urls.Add(item.GetString()!);
+            }
+        }
+    }
+
+    private static void AddStringProperty(JsonElement root, string propertyName, List<string> urls)
+    {
+        if (root.TryGetProperty(propertyName, out var property)
+            && property.ValueKind == JsonValueKind.String
+            && !string.IsNullOrWhiteSpace(property.GetString()))
+        {
+            urls.Add(property.GetString()!);
+        }
+    }
+
+    private static bool IsUsableImageUrl(string value)
+    {
+        return Uri.TryCreate(value, UriKind.Absolute, out var uri)
+               && uri.Scheme == Uri.UriSchemeHttps;
     }
 
     private static bool ContainsLongProperty(string context, string propertyName, long expected)

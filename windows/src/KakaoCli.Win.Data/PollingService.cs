@@ -84,7 +84,8 @@ public sealed class PollingService
             message.Sender,
             PreviewPolicy.CreatePreview(message.Text, _maxTextChars),
             message.Timestamp.ToString("O"),
-            message.ObservedAt.ToString("O")
+            message.ObservedAt.ToString("O"),
+            message.ImageUrls
         );
     }
 }
