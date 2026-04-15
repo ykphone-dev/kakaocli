@@ -42,6 +42,7 @@ internal sealed class KakaoCliWinApp
             "send" => HandleSend(rest),
             "harvest" => HandleHarvest(rest),
             "probe" => HandleProbe(),
+            "slack-monitor" => HandleSlackMonitor(rest),
             _ => HandleUnknown(command),
         };
     }
@@ -249,6 +250,75 @@ internal sealed class KakaoCliWinApp
         return 0;
     }
 
+    private int HandleSlackMonitor(string[] args)
+    {
+        var configPath = ReadStringOption(args, "--config");
+        var dryRun = args.Contains("--dry-run");
+        var once = args.Contains("--once");
+        var intervalOverride = ReadIntOption(args, "--interval-seconds");
+
+        var validation = AllowlistConfig.LoadAndValidate(configPath ?? string.Empty);
+        if (!validation.IsValid || validation.Config is null)
+        {
+            foreach (var error in validation.Errors)
+            {
+                Console.Error.WriteLine($"Config error: {error}");
+            }
+            return 2;
+        }
+
+        var config = validation.Config;
+        if (intervalOverride is > 0)
+        {
+            config = config with { PollIntervalSeconds = intervalOverride.Value };
+        }
+
+        try
+        {
+            IMessageSink sink = dryRun
+                ? new DryRunMessageSink()
+                : new SlackMessageSink(config.SlackWebhookUrlEnv);
+
+            var reader = new AllowlistedMessageReader(config.Allowlist);
+            var cursorStore = new MonitorCursorStore(config.CursorPath);
+            var poller = new PollingService(config.Allowlist, reader, cursorStore, sink, config.MaxTextChars);
+
+            if (once)
+            {
+                return poller.RunOnceAsync().GetAwaiter().GetResult();
+            }
+
+            using var cts = new CancellationTokenSource();
+            Console.CancelKeyPress += (_, eventArgs) =>
+            {
+                eventArgs.Cancel = true;
+                cts.Cancel();
+            };
+
+            while (!cts.IsCancellationRequested)
+            {
+                poller.RunOnceAsync(cts.Token).GetAwaiter().GetResult();
+                Task.Delay(TimeSpan.FromSeconds(config.PollIntervalSeconds), cts.Token).GetAwaiter().GetResult();
+            }
+
+            return 0;
+        }
+        catch (NotSupportedException error)
+        {
+            Console.Error.WriteLine(error.Message);
+            return 3;
+        }
+        catch (OperationCanceledException)
+        {
+            return 0;
+        }
+        catch (Exception error)
+        {
+            Console.Error.WriteLine($"slack-monitor failed: {error.Message}");
+            return 1;
+        }
+    }
+
     private static int HandleUnknown(string command)
     {
         Console.Error.WriteLine($"Unknown command: {command}");
@@ -330,6 +400,7 @@ Commands:
   send <chat> <message>
   harvest [--dry-run]
   probe
+  slack-monitor --config PATH [--dry-run] [--once] [--interval-seconds N]
 """);
     }
 
