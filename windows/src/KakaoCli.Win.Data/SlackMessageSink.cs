@@ -9,14 +9,12 @@ public sealed class SlackMessageSink : IMessageSink
     private readonly HttpClient _client;
 
     public SlackMessageSink(string webhookUrlEnv, HttpClient? client = null)
+        : this(ReadWebhookFromEnv(webhookUrlEnv), client)
     {
-        var webhookUrl = Environment.GetEnvironmentVariable(webhookUrlEnv);
-        if (string.IsNullOrWhiteSpace(webhookUrl))
-        {
-            throw new InvalidOperationException($"Slack webhook URL env var is not set: {webhookUrlEnv}");
-        }
+    }
 
-        var webhookUri = new Uri(webhookUrl);
+    public SlackMessageSink(Uri webhookUri, HttpClient? client = null)
+    {
         if (webhookUri.Scheme != Uri.UriSchemeHttps || !IsSlackHost(webhookUri.Host))
         {
             throw new InvalidOperationException("Slack webhook URL must be an HTTPS slack.com URL.");
@@ -24,6 +22,27 @@ public sealed class SlackMessageSink : IMessageSink
 
         _webhookUri = webhookUri;
         _client = client ?? new HttpClient();
+    }
+
+    public static SlackMessageSink FromWebhookUrl(string webhookUrl, HttpClient? client = null)
+    {
+        if (string.IsNullOrWhiteSpace(webhookUrl))
+        {
+            throw new InvalidOperationException("Slack webhook URL is empty.");
+        }
+
+        return new SlackMessageSink(new Uri(webhookUrl), client);
+    }
+
+    private static Uri ReadWebhookFromEnv(string webhookUrlEnv)
+    {
+        var webhookUrl = Environment.GetEnvironmentVariable(webhookUrlEnv);
+        if (string.IsNullOrWhiteSpace(webhookUrl))
+        {
+            throw new InvalidOperationException($"Slack webhook URL env var is not set: {webhookUrlEnv}");
+        }
+
+        return new Uri(webhookUrl);
     }
 
     public async Task<bool> SendAsync(MonitorPayload payload, CancellationToken cancellationToken = default)

@@ -24,12 +24,15 @@ public sealed class MonitorCursorStore
             return new Dictionary<long, long>();
         }
 
-        await using var stream = File.OpenRead(_path);
-        var document = await JsonSerializer.DeserializeAsync<CursorDocument>(
-            stream,
-            CursorJson.Options,
-            cancellationToken
-        );
+        CursorDocument? document;
+        await using (var stream = File.OpenRead(_path))
+        {
+            document = await JsonSerializer.DeserializeAsync<CursorDocument>(
+                stream,
+                CursorJson.Options,
+                cancellationToken
+            );
+        }
 
         if (document?.Chats is null)
         {
