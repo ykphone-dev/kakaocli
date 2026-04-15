@@ -194,6 +194,7 @@ static async Task TestSlackSinkSafety()
     Assert(!handler.Body.Contains("policy<&room>", StringComparison.Ordinal), "Slack text should not contain raw angle brackets.");
     Assert(handler.Body.Contains("\"type\":\"image\"", StringComparison.Ordinal), "Slack image block should be emitted.");
     Assert(handler.Body.Contains(publicImageUrl, StringComparison.Ordinal), "Slack payload should include public image URL.");
+    Assert(handler.Body.Contains("\"blocks\"", StringComparison.Ordinal), "Slack payload should use block template.");
 
     const string kakaoImageUrl = "https://talk.kakaocdn.net/test-image.png";
     var kakaoSent = await sink.SendAsync(new MonitorPayload(
@@ -211,8 +212,16 @@ static async Task TestSlackSinkSafety()
     Environment.SetEnvironmentVariable(envName, null);
     Assert(kakaoSent, "Kakao image fallback should report success for 2xx response.");
     Assert(!handler.Body.Contains("\"type\":\"image\"", StringComparison.Ordinal), "Kakao CDN URLs should not be sent as Slack image blocks.");
-    Assert(handler.Body.Contains(kakaoImageUrl, StringComparison.Ordinal), "Kakao CDN image URL should be included as a link.");
+    Assert(handler.Body.Contains("\"type\":\"button\"", StringComparison.Ordinal), "Kakao CDN URLs should be sent as attachment buttons.");
     Assert(handler.Body.Contains("\"unfurl_media\":true", StringComparison.Ordinal), "Kakao CDN link fallback should request media unfurl.");
+    Assert(handler.Body.Contains(kakaoImageUrl, StringComparison.Ordinal), "Kakao CDN image URL should be included as a button URL.");
+
+    using var kakaoDocument = JsonDocument.Parse(handler.Body);
+    var root = kakaoDocument.RootElement;
+    var fallbackText = root.GetProperty("text").GetString() ?? "";
+    var sectionText = root.GetProperty("blocks")[0].GetProperty("text").GetProperty("text").GetString() ?? "";
+    Assert(!fallbackText.Contains(kakaoImageUrl, StringComparison.Ordinal), "Fallback text should not expose raw Kakao image URLs.");
+    Assert(!sectionText.Contains(kakaoImageUrl, StringComparison.Ordinal), "Section text should not expose raw Kakao image URLs.");
 }
 
 static Task TestProgramBoundary()

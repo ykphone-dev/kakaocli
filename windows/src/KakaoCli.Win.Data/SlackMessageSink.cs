@@ -49,7 +49,9 @@ public sealed class SlackMessageSink : IMessageSink
     {
         var imageUrls = FilterImageUrls(payload.ImageUrls);
         var blockImageUrls = imageUrls.Where(IsSlackImageBlockCandidate).ToList();
-        var text = BuildText(payload, imageUrls, blockImageUrls.Count == 0);
+        var blockImageSet = blockImageUrls.ToHashSet(StringComparer.Ordinal);
+        var linkedImageUrls = imageUrls.Where(url => !blockImageSet.Contains(url)).ToList();
+        var text = BuildFallbackText(payload, imageUrls.Count);
         var body = new Dictionary<string, object?>
         {
             ["text"] = text,
@@ -67,7 +69,7 @@ public sealed class SlackMessageSink : IMessageSink
             body["unfurl_media"] = true;
         }
 
-        var blocks = BuildBlocks(text, blockImageUrls);
+        var blocks = BuildBlocks(payload, blockImageUrls, linkedImageUrls);
         if (blocks.Count > 0)
         {
             body["blocks"] = blocks;
@@ -92,30 +94,26 @@ public sealed class SlackMessageSink : IMessageSink
         return false;
     }
 
-    private static string BuildText(MonitorPayload payload, IReadOnlyList<string> imageUrls, bool appendImageLinks)
+    private static string BuildFallbackText(MonitorPayload payload, int imageCount)
     {
         var text = $"[{EscapeSlackText(payload.ChatLabel)}] " +
                    $"{EscapeSlackText(payload.Sender ?? "Unknown")}: " +
-                   $"{EscapeSlackText(payload.TextPreview)}";
+                   $"{EscapeSlackText(DisplayText(payload.TextPreview))}";
 
-        if (!appendImageLinks || imageUrls.Count == 0)
+        if (imageCount == 0)
         {
             return text;
         }
 
-        return text + "\n" + string.Join("\n", imageUrls.Select(EscapeSlackText));
+        return text + (imageCount == 1 ? " (image attached)" : $" ({imageCount} images attached)");
     }
 
     private static IReadOnlyList<Dictionary<string, object?>> BuildBlocks(
-        string text,
-        IReadOnlyList<string> imageUrls
+        MonitorPayload payload,
+        IReadOnlyList<string> blockImageUrls,
+        IReadOnlyList<string> linkedImageUrls
     )
     {
-        if (imageUrls.Count == 0)
-        {
-            return [];
-        }
-
         var blocks = new List<Dictionary<string, object?>>
         {
             new()
@@ -124,22 +122,70 @@ public sealed class SlackMessageSink : IMessageSink
                 ["text"] = new Dictionary<string, string>
                 {
                     ["type"] = "mrkdwn",
-                    ["text"] = text,
+                    ["text"] = BuildSectionText(payload, blockImageUrls.Count + linkedImageUrls.Count),
                 },
             },
         };
 
-        for (var i = 0; i < imageUrls.Count; i++)
+        for (var i = 0; i < blockImageUrls.Count; i++)
         {
             blocks.Add(new Dictionary<string, object?>
             {
                 ["type"] = "image",
-                ["image_url"] = imageUrls[i],
+                ["image_url"] = blockImageUrls[i],
                 ["alt_text"] = $"Kakao image {i + 1}",
             });
         }
 
+        for (var i = 0; i < linkedImageUrls.Count; i += 5)
+        {
+            var elements = linkedImageUrls
+                .Skip(i)
+                .Take(5)
+                .Select((url, offset) => new Dictionary<string, object?>
+                {
+                    ["type"] = "button",
+                    ["text"] = new Dictionary<string, string>
+                    {
+                        ["type"] = "plain_text",
+                        ["text"] = linkedImageUrls.Count == 1
+                            ? "Open image"
+                            : $"Open image {i + offset + 1}",
+                    },
+                    ["url"] = url,
+                })
+                .Cast<object?>()
+                .ToList();
+
+            blocks.Add(new Dictionary<string, object?>
+            {
+                ["type"] = "actions",
+                ["elements"] = elements,
+            });
+        }
+
         return blocks;
+    }
+
+    private static string BuildSectionText(MonitorPayload payload, int imageCount)
+    {
+        var lines = new List<string>
+        {
+            $"*{EscapeSlackText(payload.ChatLabel)}*",
+            $"*{EscapeSlackText(payload.Sender ?? "Unknown")}*: {EscapeSlackText(DisplayText(payload.TextPreview))}",
+        };
+
+        if (imageCount > 0)
+        {
+            lines.Add(imageCount == 1 ? "_Image attached_" : $"_Images attached: {imageCount}_");
+        }
+
+        return string.Join("\n", lines);
+    }
+
+    private static string DisplayText(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? "(no text)" : value;
     }
 
     private static IReadOnlyList<string> FilterImageUrls(IReadOnlyList<string>? imageUrls)
