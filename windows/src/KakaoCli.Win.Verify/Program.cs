@@ -176,6 +176,7 @@ static async Task TestSlackSinkSafety()
     var handler = new CapturingHttpHandler();
     Environment.SetEnvironmentVariable(envName, "https://hooks.slack.com/services/test");
     var sink = new SlackMessageSink(envName, new HttpClient(handler));
+    const string publicImageUrl = "https://www.gstatic.com/webp/gallery/1.jpg";
     var sent = await sink.SendAsync(new MonitorPayload(
         123,
         "policy<&room>",
@@ -185,15 +186,33 @@ static async Task TestSlackSinkSafety()
         "hello <@channel> & text",
         DateTimeOffset.UtcNow.ToString("O"),
         DateTimeOffset.UtcNow.ToString("O"),
-        ["https://talk.kakaocdn.net/test-image.png"]
+        [publicImageUrl]
     ));
 
-    Environment.SetEnvironmentVariable(envName, null);
     Assert(sent, "Slack sink should report success for 2xx response.");
     Assert(!handler.Body.Contains("hello <@channel>", StringComparison.Ordinal), "Slack text should not contain raw mention syntax.");
     Assert(!handler.Body.Contains("policy<&room>", StringComparison.Ordinal), "Slack text should not contain raw angle brackets.");
     Assert(handler.Body.Contains("\"type\":\"image\"", StringComparison.Ordinal), "Slack image block should be emitted.");
-    Assert(handler.Body.Contains("https://talk.kakaocdn.net/test-image.png", StringComparison.Ordinal), "Slack payload should include image URL.");
+    Assert(handler.Body.Contains(publicImageUrl, StringComparison.Ordinal), "Slack payload should include public image URL.");
+
+    const string kakaoImageUrl = "https://talk.kakaocdn.net/test-image.png";
+    var kakaoSent = await sink.SendAsync(new MonitorPayload(
+        123,
+        "policy-room",
+        12,
+        null,
+        "sender",
+        "사진",
+        DateTimeOffset.UtcNow.ToString("O"),
+        DateTimeOffset.UtcNow.ToString("O"),
+        [kakaoImageUrl]
+    ));
+
+    Environment.SetEnvironmentVariable(envName, null);
+    Assert(kakaoSent, "Kakao image fallback should report success for 2xx response.");
+    Assert(!handler.Body.Contains("\"type\":\"image\"", StringComparison.Ordinal), "Kakao CDN URLs should not be sent as Slack image blocks.");
+    Assert(handler.Body.Contains(kakaoImageUrl, StringComparison.Ordinal), "Kakao CDN image URL should be included as a link.");
+    Assert(handler.Body.Contains("\"unfurl_media\":true", StringComparison.Ordinal), "Kakao CDN link fallback should request media unfurl.");
 }
 
 static Task TestProgramBoundary()

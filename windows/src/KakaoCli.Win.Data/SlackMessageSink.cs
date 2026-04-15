@@ -47,9 +47,9 @@ public sealed class SlackMessageSink : IMessageSink
 
     public async Task<bool> SendAsync(MonitorPayload payload, CancellationToken cancellationToken = default)
     {
-        var text = $"[{EscapeSlackText(payload.ChatLabel)}] " +
-                   $"{EscapeSlackText(payload.Sender ?? "Unknown")}: " +
-                   $"{EscapeSlackText(payload.TextPreview)}";
+        var imageUrls = FilterImageUrls(payload.ImageUrls);
+        var blockImageUrls = imageUrls.Where(IsSlackImageBlockCandidate).ToList();
+        var text = BuildText(payload, imageUrls, blockImageUrls.Count == 0);
         var body = new Dictionary<string, object?>
         {
             ["text"] = text,
@@ -61,7 +61,13 @@ public sealed class SlackMessageSink : IMessageSink
                 observed_at = payload.ObservedAt,
             },
         };
-        var blocks = BuildBlocks(text, payload.ImageUrls);
+        if (imageUrls.Count > 0)
+        {
+            body["unfurl_links"] = true;
+            body["unfurl_media"] = true;
+        }
+
+        var blocks = BuildBlocks(text, blockImageUrls);
         if (blocks.Count > 0)
         {
             body["blocks"] = blocks;
@@ -78,25 +84,34 @@ public sealed class SlackMessageSink : IMessageSink
             return true;
         }
 
+        var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
         Console.Error.WriteLine(
-            $"Slack delivery failed: HTTP {(int)response.StatusCode} for chat_id={payload.ChatId}, log_id={payload.LogId}"
+            $"Slack delivery failed: HTTP {(int)response.StatusCode} for chat_id={payload.ChatId}, " +
+            $"log_id={payload.LogId}: {responseBody}"
         );
         return false;
     }
 
+    private static string BuildText(MonitorPayload payload, IReadOnlyList<string> imageUrls, bool appendImageLinks)
+    {
+        var text = $"[{EscapeSlackText(payload.ChatLabel)}] " +
+                   $"{EscapeSlackText(payload.Sender ?? "Unknown")}: " +
+                   $"{EscapeSlackText(payload.TextPreview)}";
+
+        if (!appendImageLinks || imageUrls.Count == 0)
+        {
+            return text;
+        }
+
+        return text + "\n" + string.Join("\n", imageUrls.Select(EscapeSlackText));
+    }
+
     private static IReadOnlyList<Dictionary<string, object?>> BuildBlocks(
         string text,
-        IReadOnlyList<string>? imageUrls
+        IReadOnlyList<string> imageUrls
     )
     {
-        var urls = imageUrls?
-            .Where(url => Uri.TryCreate(url, UriKind.Absolute, out var uri)
-                          && uri.Scheme == Uri.UriSchemeHttps)
-            .Distinct(StringComparer.Ordinal)
-            .Take(4)
-            .ToList() ?? [];
-
-        if (urls.Count == 0)
+        if (imageUrls.Count == 0)
         {
             return [];
         }
@@ -114,17 +129,38 @@ public sealed class SlackMessageSink : IMessageSink
             },
         };
 
-        for (var i = 0; i < urls.Count; i++)
+        for (var i = 0; i < imageUrls.Count; i++)
         {
             blocks.Add(new Dictionary<string, object?>
             {
                 ["type"] = "image",
-                ["image_url"] = urls[i],
+                ["image_url"] = imageUrls[i],
                 ["alt_text"] = $"Kakao image {i + 1}",
             });
         }
 
         return blocks;
+    }
+
+    private static IReadOnlyList<string> FilterImageUrls(IReadOnlyList<string>? imageUrls)
+    {
+        return imageUrls?
+            .Where(url => Uri.TryCreate(url, UriKind.Absolute, out var uri)
+                          && uri.Scheme == Uri.UriSchemeHttps)
+            .Distinct(StringComparer.Ordinal)
+            .Take(8)
+            .ToList() ?? [];
+    }
+
+    private static bool IsSlackImageBlockCandidate(string url)
+    {
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
+        {
+            return false;
+        }
+
+        // Slack rejects Kakao signed CDN URLs as image blocks, but accepts them as links.
+        return !uri.Host.EndsWith("kakaocdn.net", StringComparison.OrdinalIgnoreCase);
     }
 
     private static string EscapeSlackText(string value)
